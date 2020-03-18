@@ -19,6 +19,7 @@ namespace EDating.API.Controllers
 
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult> GetValues()
         {
