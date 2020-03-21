@@ -7,6 +7,7 @@ namespace EDating.API.Data
     {
         public DbSet<Value> Values { get; set; }
         public DbSet<User> User { get; set; }
+        public DbSet<Photo> Photos {get;set;}
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {
             
