@@ -95,5 +95,68 @@ namespace EDating.API.Controllers
 
             return BadRequest("Nie można dodać zdjęcia.");
         }
+
+        [HttpPost("{id}/setMain")]
+        public async Task<IActionResult> SetMainPhoto(int userId, int id)
+        {
+             if(userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))
+                return Unauthorized();
+
+            var user = await _repository.GetUser(userId);
+
+            if(!user.Photos.Any( p => p.Id == id))
+                 return Unauthorized();
+            var photoFromRepo = await _repository.GetPhoto(id);
+            if(photoFromRepo.IsMain)
+                return BadRequest("To jest Twoje główne zdjęcie");
+
+            var currentMainPhoto = await _repository.GetMainPhotoForUser(userId);
+            currentMainPhoto.IsMain = false;
+            photoFromRepo.IsMain = true;
+
+            if(await _repository.SaveAll())
+                return NoContent();
+            
+            return BadRequest("Wystąpił błąd podczas ustawiania zdjęcia profilowego");
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePhoto(int userId, int id)
+        {
+            if(userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))
+                return Unauthorized();
+
+            var user = await _repository.GetUser(userId);
+
+            if(!user.Photos.Any( p => p.Id == id))
+                 return Unauthorized();
+            var photoFromRepo = await _repository.GetPhoto(id);
+            if(photoFromRepo.IsMain)
+                return BadRequest("Nie możesz usunąć zdjęcia profilowego.");
+
+            if(photoFromRepo.PublicId != null)
+            {
+                var deleteParams = new DeletionParams(photoFromRepo.PublicId);
+
+                var result = _cloudinary.Destroy(deleteParams);
+
+                if(result.Result == "ok")
+                {
+                    _repository.Delete(photoFromRepo);
+                }
+            }
+
+            if(photoFromRepo.PublicId == null)
+            {
+                _repository.Delete(photoFromRepo);
+            }
+
+           
+
+            if(await _repository.SaveAll())
+                return Ok();
+
+            return BadRequest("Wystąpił problem podczas usuwania zdjęcia.");
+        }
     }
 }
