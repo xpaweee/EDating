@@ -5,11 +5,14 @@ using System.Threading.Tasks;
 using AutoMapper;
 using EDating.API.Data;
 using EDating.API.Dto;
+using EDating.API.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EDating.API.Controllers
 {
+    //automatyczne zapisywanie date aktywnosci
+    [ServiceFilter(typeof(LogUserActivity))]
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
@@ -35,7 +38,7 @@ namespace EDating.API.Controllers
         }
 
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = "GetUser")]
         public async Task<IActionResult> GetUser(int id)
         {
             var user = await _repo.GetUser(id);
