@@ -6,6 +6,7 @@ using AutoMapper;
 using EDating.API.Data;
 using EDating.API.Dto;
 using EDating.API.Helpers;
+using EDating.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -77,5 +78,35 @@ namespace EDating.API.Controllers
             
             throw new Exception($"Akutalizacja użytkownika zakończona niepowodzeniem.");
         }
+
+        [HttpPost("{id}/like/{recipientId}")]
+        public async Task<IActionResult> LikeUser(int id, int recipientId)
+        {   
+            if(id != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))
+                return Unauthorized();
+
+            var like = await _repo.GetLike(id, recipientId);
+
+            if( like != null)
+                return BadRequest("Ten użytkownik został przez Ciebie polubiony.");
+
+            if(await _repo.GetUser(recipientId) == null)
+                return NotFound();
+                
+            like = new Like
+            {
+                LikerId = id,
+                LikeeId = recipientId
+            };
+
+            _repo.Add<Like>(like);
+
+            if( await _repo.SaveAll())
+                return Ok();
+            
+            return BadRequest("Nie udało się polubić użytkownika");
+
+        }
+
     }
 }
