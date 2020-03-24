@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EDating.API.Helpers;
 using EDating.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,11 +45,36 @@ namespace EDating.API.Data
             return user;
         }
 
-        public async Task<IEnumerable<User>> GetUsers()
+        public async Task<PagedList<User>> GetUsers(UserParams userParams)
         {
-            var user =await _context.User.Include(x => x.Photos).ToListAsync();
+            var users = _context.User.Include(x => x.Photos).OrderByDescending(u => u.LastActive).AsQueryable();
 
-            return user;
+            users = users.Where(u => u.Id != userParams.UserId);
+
+            users = users.Where(u => u.Gender == userParams.Gender);
+
+            if(userParams.MinAge != 18 || userParams.MaxAge != 99)
+            {
+                var minDateOfBirth = DateTime.Today.AddYears(-userParams.MaxAge - 1 );
+                var maxDateOfBirth = DateTime.Today.AddYears(-userParams.MinAge - 1 );
+
+                users = users.Where(x => x.DateOfBirth >= minDateOfBirth && x.DateOfBirth <= maxDateOfBirth);
+            }
+
+            if(!string.IsNullOrEmpty(userParams.OrderBy))
+            {
+                switch (userParams.OrderBy)
+                {
+                    case "created":
+                        users = users.OrderByDescending( x => x.Created);
+                        break;
+                    default:
+                        users = users.OrderByDescending( x => x.LastActive);
+                        break;
+                }
+            }
+
+            return await PagedList<User>.CreateAsync(users, userParams.PageNumber,userParams.PageSize);
         }
 
         public async Task<bool> SaveAll()
