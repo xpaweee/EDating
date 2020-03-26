@@ -21,6 +21,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
+
+
 namespace EDating.API
 {
     public class Startup
@@ -32,10 +34,23 @@ namespace EDating.API
 
         public IConfiguration Configuration { get; }
 
+        public void ConfigureDevelpomentServices(IServiceCollection services)
+        {
+            services.AddDbContext<DataContext>( x => x.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
+
+            ConfigureServices(services);
+        }
+        public void ConfigureProductionServices(IServiceCollection services)
+        {
+            services.AddDbContext<DataContext>( x => x.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
+
+            ConfigureServices(services);
+        }
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<DataContext>( x => x.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<DataContext>( x => x.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
             services.AddScoped<IAuthRepository,AuthRepository>();
             services.AddScoped<IDatingRepository,DatingRepository>();
             services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
@@ -88,10 +103,15 @@ namespace EDating.API
             app.UseAuthorization();
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
+            //jeśli pliki zbuowane z angulara w wwwroot umożliwia to działanie apki na localhost. Trzeba dorzucić te poniższe rzeczy.
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
+
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapFallbackToController("Index", "Fallback");
             });
         }
     }
